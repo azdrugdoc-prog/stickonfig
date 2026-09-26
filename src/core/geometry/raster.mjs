@@ -104,6 +104,10 @@ export function polygonArea(points) {
 }
 
 export function traceComponentBoundary(labels, component, width, height) {
+  return traceComponentBoundaries(labels, component, width, height)[0] || [];
+}
+
+export function traceComponentBoundaries(labels, component, width, height) {
   const vertexWidth = width + 1;
   const edges = new Map();
   const addEdge = (startX, startY, endX, endY) => {
@@ -141,7 +145,7 @@ export function traceComponentBoundary(labels, component, width, height) {
     }
     if (current === start && points.length >= 3) loops.push(points);
   }
-  return loops.sort((a, b) => Math.abs(polygonArea(b)) - Math.abs(polygonArea(a)))[0] || [];
+  return loops.sort((a, b) => Math.abs(polygonArea(b)) - Math.abs(polygonArea(a)));
 }
 
 export function perpendicularDistance(point, start, end) {

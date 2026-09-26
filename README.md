@@ -15,6 +15,8 @@ Stickonfig is a gift of code, not a hosted service. Deploy it yourself, link to 
 - Padded masks, concave contours, nearby-element grouping, multiple paths and Clipper2 physical offsets; smoothed photographic curves.
 - Die cut, circle, oval, rectangle, square, rounded rectangle and bumper shapes.
 - Tight / Standard / Wide / Custom perimeter, including negative inset cuts.
+- Outer-outline-only die cuts by default, with optional enclosed interior cutouts.
+- Non-destructive Erase / Restore artwork brush, brush sizing, Undo, Clear all erasures and Cancel/Apply; original uploads stay untouched.
 - Border / print-to-edge modes; zoom and drag inside geometric cuts.
 - Aspect-ratio locking, quarter-inch size controls, presets and quantities.
 - Configurable placeholder pricing, laminate and optional manual enhancement requests.

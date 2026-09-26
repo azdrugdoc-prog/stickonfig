@@ -8,13 +8,15 @@ import * as geometry from '../core/geometry/raster.mjs';
 import { createJob } from '../production/job.mjs';
 import { submitJob as deliverJob } from '../adapters/submit/index.mjs';
 import { clearDownloads } from '../adapters/storage/download.mjs';
+import { outerContours } from '../core/geometry/editing.mjs';
+import { createArtworkEditor } from './artwork-editor.mjs';
 
 (() => {
   const app = document.querySelector("#sticker-builder-app");
   if (!app) return;
 
   const { colorDistance, sampleBackgroundPalette, alphaMask, classifyArtwork, edgeBackgroundMask, dilate, erode, removeTinyIslands, fillTinyHoles, cleanupSubjectMatte, padMask } = masks;
-  const { distanceTransformLine, offsetMask, labelComponents, polygonArea, traceComponentBoundary, perpendicularDistance, simplifyOpenPath, simplifyClosedPath, smoothClosedPath } = geometry;
+  const { distanceTransformLine, offsetMask, labelComponents, polygonArea, traceComponentBoundaries, perpendicularDistance, simplifyOpenPath, simplifyClosedPath, smoothClosedPath } = geometry;
   const MAX_FILE_BYTES = config.upload.maxMegabytes * 1024 * 1024;
   const ANALYSIS_MAX_SIDE = config.processing.analysisMaxSide;
   const PERIMETERS = config.perimeters;
@@ -66,6 +68,8 @@ import { clearDownloads } from '../adapters/storage/download.mjs';
     sourceCanvas: null,
     sourceImageData: null,
     processedCanvas: null,
+    editorImageData: null,
+    manualErase: null,
     mask: null,
     maskWidth: 0,
     maskHeight: 0,
@@ -100,6 +104,12 @@ import { clearDownloads } from '../adapters/storage/download.mjs';
 
   let processingModulePromise;
   let submitPending = false;
+  const artworkEditor = createArtworkEditor(control('editor-dialog'), erased => {
+    clearDownloads();
+    state.manualErase = erased.some(Boolean) ? erased : null;
+    scheduleRender();
+  });
+  control('edit-artwork').addEventListener('click', () => artworkEditor.open(state.editorImageData, state.manualErase));
 
   function resolutionInput() {
     const factor = (selectedValue('borderMode') === 'print-to-edge' ? 1.08 : 1) * artworkPlacement().zoom;
@@ -283,6 +293,7 @@ import { clearDownloads } from '../adapters/storage/download.mjs';
     control('circle-note').hidden = !equal;
     control('circle-note').textContent = `${shapeNames[selectedValue('cutStyle')]} sizes keep width and height equal. Choose Oval or Rectangle for independent dimensions.`;
     control('preview-toolbar').hidden = selectedValue('cutStyle') === 'die-cut';
+    control('outline-option').hidden = selectedValue('cutStyle') !== 'die-cut';
     elements.proofCanvas.classList.toggle('is-positionable', !control('preview-toolbar').hidden);
     renderPrice();
   }
@@ -476,6 +487,20 @@ import { clearDownloads } from '../adapters/storage/download.mjs';
       }
     }
 
+    // Apply erasures after automatic cleanup so morphology cannot restore them.
+    // Fixed source coordinates keep edits stable when physical padding changes.
+    state.editorImageData = new ImageData(new Uint8ClampedArray(outputData.data), sourceWidth, sourceHeight);
+    let erasedPixels = 0;
+    if (state.manualErase) for (let index = 0; index < state.manualErase.length; index++) {
+      if (!state.manualErase[index]) continue;
+      if (outputData.data[index * 4 + 3]) erasedPixels++;
+      outputData.data[index * 4 + 3] = 0;
+      mask[(Math.floor(index / sourceWidth) + padding.top) * padded.width + index % sourceWidth + padding.left] = 0;
+    }
+    state.processingMetadata.manualErasePixels = erasedPixels;
+    state.processingMetadata.manualArtworkEdits = erasedPixels > 0;
+    state.processingMetadata.editRaster = { width: sourceWidth, height: sourceHeight };
+    if (state.manualErase && !mask.some(Boolean)) throw new Error('The edits removed all artwork. Restore some artwork before continuing.');
     const canvas = document.createElement("canvas");
     canvas.width = padded.width;
     canvas.height = padded.height;
@@ -531,8 +556,10 @@ import { clearDownloads } from '../adapters/storage/download.mjs';
     const useful = components.filter((component) => component.size >= minimumSize).sort((a, b) => b.size - a.size);
     if (!useful.length) return [rectangleContour(false)];
     if (useful.length > MAX_CONTOUR_PATHS) state.warnings.push(`Only the ${MAX_CONTOUR_PATHS} largest artwork groups were contoured; production review is recommended.`);
-    const rawPaths = useful.slice(0, MAX_CONTOUR_PATHS).map((component) => {
-      const boundary = traceComponentBoundary(labels, component, width, height);
+    const rawPaths = useful.slice(0, MAX_CONTOUR_PATHS).flatMap((component) => {
+      const boundaries = traceComponentBoundaries(labels, component, width, height);
+      return control('outer-outline').checked ? boundaries.slice(0, 1) : boundaries;
+    }).map((boundary) => {
       const points = simplifyClosedPath(boundary, Math.max(0.55, Math.min(width, height) * 0.0006));
       const transform = state.artworkTransform;
       return points.map(([x, y]) => ({ x: transform.x + x * transform.scale, y: transform.y + y * transform.scale }));
@@ -560,6 +587,10 @@ import { clearDownloads } from '../adapters/storage/download.mjs';
     finished = clipper.ramerDouglasPeuckerPathsD(finished, simplifyTolerance);
     finished = clipper.simplifyPathsD(finished, simplifyTolerance * 0.5, true);
     finished = finished.filter((path) => path.length >= 3).sort((a, b) => Math.abs(polygonArea(b.map((point) => [point.x, point.y]))) - Math.abs(polygonArea(a.map((point) => [point.x, point.y]))));
+    if (control('outer-outline').checked) {
+      finished = outerContours(finished.map(path => path.map(({ x, y }) => [x, y])))
+        .map(path => path.map(([x, y]) => ({ x, y })));
+    }
     if (perimeter < 0 && !finished.length) throw new Error('This negative perimeter removes the entire sticker. Use an inset closer to zero.');
     if (perimeter < 0 && finished.length < grouped.length) state.warnings.push('The inset removed a small artwork group. Review fine details before ordering.');
 
@@ -570,6 +601,7 @@ import { clearDownloads } from '../adapters/storage/download.mjs';
       bridgeDistanceInches: bridgeDistance,
       groupingExpansionInches: groupingExpansion,
       groupingMode: elements.grouping?.value || "auto",
+      outerOutlineOnly: control('outer-outline').checked,
       polygonCountBeforeMerge: rawPaths.length,
       polygonCountAfterMerge: grouped.length,
       simplificationToleranceInches: simplifyTolerance,
@@ -894,6 +926,11 @@ import { clearDownloads } from '../adapters/storage/download.mjs';
     elements.proofStatus.textContent = manualReview ? `Review recommended${pathLabel}` : `Proof ready${pathLabel}`;
     elements.proofStatus.classList.toggle("is-ready", !manualReview);
     elements.add.disabled = false;
+    control('edit-artwork').hidden = false;
+    control('edit-artwork').disabled = false;
+    control('edit-note').textContent = state.processingMetadata.manualArtworkEdits
+      ? 'Artwork edits applied to the proof and production files. Original upload preserved.'
+      : 'Remove unwanted details with Erase / Restore. Your original upload stays untouched.';
     if (DEBUG_STICKER) {
       window.__stickonfigDebug = {
         artworkPlacement: artworkPlacement(),
@@ -932,6 +969,7 @@ import { clearDownloads } from '../adapters/storage/download.mjs';
     state.renderGeneration += 1;
     // Invalidate the previous ready proof immediately, not on the next frame.
     elements.add.disabled = true;
+    control('edit-artwork').disabled = true;
     if (state.renderScheduled) return;
     state.renderScheduled = true;
     requestAnimationFrame(() => {
@@ -942,6 +980,7 @@ import { clearDownloads } from '../adapters/storage/download.mjs';
         elements.validation.textContent = error.message || "The proof could not be generated.";
         elements.proofStatus.textContent = "Review required";
         elements.add.disabled = true;
+        control('edit-artwork').disabled = !state.editorImageData;
       });
     });
   }
@@ -1160,6 +1199,7 @@ import { clearDownloads } from '../adapters/storage/download.mjs';
           artworkPlacement: artworkPlacement(),
           maintainAspectRatio: elements.lockRatio.checked,
           cutStyle,
+          outerOutlineOnly: cutStyle === 'die-cut' && control('outer-outline').checked,
           backgroundMode,
           perimeterMode,
           perimeterInches: perimeterInches(),
@@ -1192,6 +1232,10 @@ import { clearDownloads } from '../adapters/storage/download.mjs';
   }
 
   function resetBuilder() {
+    artworkEditor.close();
+    control('edit-artwork').hidden = true;
+    control('edit-artwork').disabled = true;
+    control('edit-note').textContent = '';
     clearDownloads();
     if (control('resolution-dialog').open) control('resolution-dialog').close('cancel');
     control('resolution').hidden = true;
@@ -1207,6 +1251,8 @@ import { clearDownloads } from '../adapters/storage/download.mjs';
       sourceCanvas: null,
       sourceImageData: null,
       processedCanvas: null,
+      editorImageData: null,
+      manualErase: null,
       mask: null,
       maskWidth: 0,
       maskHeight: 0,
@@ -1266,6 +1312,7 @@ import { clearDownloads } from '../adapters/storage/download.mjs';
   elements.dropZone.addEventListener("drop", (event) => handleFile(event.dataTransfer?.files?.[0]));
 
   elements.form.addEventListener("change", (event) => {
+    if (event.target.id === 'builder-outer-outline') clearDownloads();
     if (event.target.name === 'material') { renderPrice(); redrawPlacement(); return; }
     if (['builder-guidelines-ack', 'builder-laminate', 'builder-enhance'].includes(event.target.id)) { renderPrice(); renderResolution(); return; }
     // Number edits already render on input. Re-rendering again on blur would

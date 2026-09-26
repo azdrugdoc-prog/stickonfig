@@ -41,6 +41,10 @@
             <small>Drag artwork to move it inside the shape.</small>
           </div>
           <div class="builder-review-message" id="builder-review-message" hidden></div>
+          <div class="builder-edit-tools">
+            <button type="button" class="button" id="builder-edit-artwork" hidden disabled>Edit artwork</button>
+            <p class="builder-inline-note" id="builder-edit-note" aria-live="polite"></p>
+          </div>
         </section>
       </div>
 
@@ -98,6 +102,10 @@
           </label>
           </div>
           <p class="builder-inline-note" id="builder-inset-note" hidden>Negative values move the cut inside the artwork. Fine details may be trimmed; review your proof.</p>
+          <div id="builder-outline-option">
+            <label class="builder-ratio-toggle"><input id="builder-outer-outline" type="checkbox" role="switch" checked aria-describedby="builder-outline-help"><span class="builder-switch-track" aria-hidden="true"></span><span>Outer outline only</span></label>
+            <p class="builder-inline-note" id="builder-outline-help">Leaves material inside enclosed gaps. Uncheck to include interior cutouts. Separate artwork pieces still get their own outlines.</p>
+          </div>
         </fieldset>
 
         <fieldset>
@@ -156,4 +164,18 @@
 <section class="container" id="downloads" hidden><h2>Your production package</h2><p>Download the ZIP or individual files. No files have been sent to a print shop.</p><div id="download-links"></div></section>
 <footer class="container">Stickonfig is independent community software, supplied as-is. Test output with your RIP before printing.</footer>
 <dialog class="builder-resolution-dialog" id="builder-resolution-dialog" aria-labelledby="builder-resolution-title" aria-describedby="builder-resolution-detail"><h2 id="builder-resolution-title">Check your image resolution</h2><p id="builder-resolution-detail"></p><form method="dialog" class="builder-resolution-actions"><button class="button button-primary" value="enhance">Request manual enhancement</button><button class="button" value="continue">Continue as-is</button><button class="button" value="cancel" autofocus>Cancel</button></form></dialog>
+  <dialog class="builder-editor-dialog" id="builder-editor-dialog" aria-labelledby="builder-editor-title" aria-describedby="builder-editor-help">
+    <h2 id="builder-editor-title">Edit artwork</h2>
+    <p id="builder-editor-help">Brush over unwanted details to erase them. Restore brings back your brush erasures, not the automatically removed background. The original upload is always preserved.</p>
+    <div class="builder-editor-tools" role="group" aria-label="Artwork editing tools">
+      <button type="button" id="builder-editor-erase" aria-pressed="true" autofocus>Erase</button>
+      <button type="button" id="builder-editor-restore" aria-pressed="false">Restore</button>
+      <button type="button" id="builder-editor-undo" disabled>Undo</button>
+      <button type="button" id="builder-editor-reset">Clear all erasures</button>
+      <label for="builder-editor-size">Brush size <output id="builder-editor-size-value">5%</output><input type="range" id="builder-editor-size" min="1" max="25" value="5" step="1"></label>
+    </div>
+    <div class="builder-editor-stage"><canvas id="builder-editor-canvas" aria-label="Artwork editing canvas. Drag to erase or restore pixels."></canvas></div>
+    <p id="builder-editor-status" role="status"></p>
+    <div class="builder-editor-actions"><button type="button" class="button" id="builder-editor-cancel">Cancel</button><button type="button" class="button button-primary" id="builder-editor-apply">Apply edits</button></div>
+  </dialog>
 <script type="module" src="./src/ui/bootstrap.mjs"></script></body></html>

@@ -71,7 +71,7 @@ This is example code, not pricing advice. Your real backend must validate select
 {
   id: 'random-uuid',
   manifest: {
-    version: 1, product: 'custom-sticker', width: 3, height: 2.4,
+    version: 2, product: 'custom-sticker', width: 3, height: 2.4,
     quantity: 100, cutStyle: 'die-cut', material: 'vinyl',
     matteLaminate: false, enhanceResolution: false,
     resolution: { effectiveDpi: 300 }, pricing: { subtotal: 0, currency: 'USD' },
@@ -83,6 +83,8 @@ This is example code, not pricing advice. Your real backend must validate select
 ```
 
 Abbreviated example: actual jobs contain eight artifacts and additional diagnostics. Manifest paths are normalized 0–1; finished size is inches. Curves are generated from the normalized contours with physical-unit smoothing. See [outputs](OUTPUTS.md).
+
+Manifest v2 adds `outerOutlineOnly` and manual-edit diagnostics in `processing`. Missing `outerOutlineOnly` retains older clients' submitted contours. The current UI defaults it to true for die cuts. `src/core/geometry/editing.mjs` contains containment filtering for unioned non-crossing contours and a swept circular erasure brush; `src/ui/artwork-editor.mjs` owns the modal's draft/history. Manual erasure masks are stored in fixed source-raster coordinates and applied **after** automatic cleanup to both printable alpha and the contour mask. Production normalization independently applies the selected outer-only policy. Do not replace edited normalized artwork with the original during prepress without carrying the edits across.
 
 Modes:
 

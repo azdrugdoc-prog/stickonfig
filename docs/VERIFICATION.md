@@ -17,6 +17,13 @@ The extraction was tested separately from its originating storefront; no product
 
 Generated two-page PDF coverage verifies unpainted-page transparency, deep concavities, intentional white details, and explicitly painted opaque white backgrounds. Import transparency is separate from the white-backed production PDF export.
 
+## Artwork editor and outer-outline update
+
+- Twelve local unit/contract/documentation test entries now include nested versus disconnected contour filtering, concave notches, continuous brush strokes/restoration, legacy manifest compatibility and production edit metadata.
+- The Chromium browser suite also covers outer-only versus interior cutouts, Erase/Restore/Undo/Cancel, Clear all erasures, completely erased-draft blocking, reset/new uploads, and edit persistence across shape/perimeter changes.
+- Synthetic edited artwork is exported through the standalone download adapter: all eight artifacts are present, the original SVG is byte-identical, erased red pixels are absent from the normalized JPEG, JSON contours match the proof, and the PDF retains a solid 0.25 pt CutContour separation. Changes to cut mode or applied edits invalidate stale download links.
+- Mobile emulation exercises native touch input and checks editor aspect ratio and horizontal fit. Screenshots and fixtures contain only synthetic artwork. Real-device and RIP limitations below still apply.
+
 ## Not certified or supplied
 
 - Individual printer/cutter/RIP compatibility, color profiles, white-ink separations, production throughput or commercial quality guarantees.

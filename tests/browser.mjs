@@ -4,6 +4,7 @@ import {chromium} from 'playwright';
 import {serve} from '../scripts/serve.mjs';
 import {animatedGif} from './fixtures.mjs';
 import {checkPdfImport} from './pdf-import.mjs';
+import {checkArtworkEditing} from './editing-browser.mjs';
 const out='test-results';fs.mkdirSync(out,{recursive:true});
 const server=await serve({port:0,basePath:'/embedded/'});
 const base=`http://127.0.0.1:${server.address().port}/embedded`;
@@ -80,6 +81,7 @@ try {
  assert.equal(await page.locator('#downloads').isVisible(),false);
  console.log('JPEG/WEBP/PDF first page/GIF first frame and low-DPI dialog passed');
  await checkPdfImport(page,'__stickonfigDebug');
+ await checkArtworkEditing(page,ready);
  if(process.env.PRIVATE_PHOTO) {
   // Optional local-only check. Never copy private fixtures/screenshots to the repo.
   await page.locator('#builder-file').setInputFiles(process.env.PRIVATE_PHOTO);await ready();

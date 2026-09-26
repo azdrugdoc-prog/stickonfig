@@ -2,6 +2,7 @@ import config from '../config/index.mjs';
 import { stickerSizes } from '../adapters/pricing/example.mjs';
 import { stickerResolution } from '../core/dpi/index.mjs';
 import { contourCommands } from '../core/contour/index.mjs';
+import { outerContours } from '../core/geometry/editing.mjs';
 const safeFilename = value => String(value).replace(/[^a-z0-9._-]/gi,'_').slice(0,160);
 function normalizeStickerContour(rawPoints) {
   if (!Array.isArray(rawPoints) || rawPoints.length < 3 || rawPoints.length > 800) {
@@ -67,7 +68,10 @@ export function normalizeStickerBuilderManifest(rawManifest) {
     throw new Error( "Sticker perimeter must be between -1 and 1 inch.");
   }
 
-  const contourPaths = normalizeStickerContours(rawManifest?.contour);
+  // Missing flag preserves older clients; the current UI explicitly opts in.
+  const outerOutlineOnly = cutStyle === 'die-cut' && rawManifest.outerOutlineOnly === true;
+  const submittedContours = normalizeStickerContours(rawManifest?.contour);
+  const contourPaths = outerOutlineOnly ? outerContours(submittedContours) : submittedContours;
   const rawProcessing = rawManifest.processing && typeof rawManifest.processing === "object" && !Array.isArray(rawManifest.processing)
     ? rawManifest.processing
     : {};
@@ -95,6 +99,13 @@ export function normalizeStickerBuilderManifest(rawManifest) {
     : resolution.requiresWarning ? [`Customer accepted ${Math.floor(resolution.effectiveDpi)} DPI artwork as-is (${config.dpi.recommended} DPI recommended).`]
     : resolutionInput && resolution.status === 'unverified' ? ['PDF/SVG embedded-image resolution needs production review.'] : [];
   const processing = {
+    outerOutlineOnly,
+    manualArtworkEdits: rawProcessing.manualArtworkEdits === true,
+    manualErasePixels: Math.round(finiteMetric(rawProcessing.manualErasePixels, 0, 1000000)),
+    editRaster: {
+      width: Math.round(finiteMetric(rawProcessing.editRaster?.width, 0, 2400)),
+      height: Math.round(finiteMetric(rawProcessing.editRaster?.height, 0, 2400))
+    },
     backgroundRemovalMode: enumValue(rawProcessing.backgroundRemovalMode, ["keep", "remove", "advanced"], backgroundMode),
     segmentationEngine: String(rawProcessing.segmentationEngine || "none").replace(/[^a-z0-9._-]/gi, "").slice(0, 80) || "none",
     segmentationRefinement: String(rawProcessing.segmentationRefinement || "none").replace(/[^a-z0-9._-]/gi, "").slice(0, 80) || "none",
@@ -134,7 +145,7 @@ export function normalizeStickerBuilderManifest(rawManifest) {
     }
   };
   return {
-    version: 1,
+    version: 2,
     originalFilename: safeFilename(rawManifest.originalFilename || "artwork"),
     detectedFileType: String(rawManifest.detectedFileType || "").slice(0, 40),
     originalPixelWidth: Math.max(0, Math.round(Number(rawManifest.originalPixelWidth) || 0)),
@@ -160,13 +171,14 @@ export function normalizeStickerBuilderManifest(rawManifest) {
     },
     maintainAspectRatio: rawManifest.maintainAspectRatio !== false,
     cutStyle,
+    outerOutlineOnly,
     backgroundMode,
     perimeterMode,
     perimeterInches,
     borderMode,
     confidence: Math.max(0, Math.min(1, Number(rawManifest.confidence) || 0)),
     manualReviewRecommended: Boolean(rawManifest.manualReviewRecommended) || resolutionWarnings.length > 0 || material === 'holographic',
-    warningFlags: [...(material === 'holographic' ? ['Holographic film: verify material and white-area treatment before printing. Foil appearance is proof-only.'] : []), ...resolutionWarnings, ...(Array.isArray(rawManifest.warningFlags)
+    warningFlags: [...(processing.manualArtworkEdits ? ['Customer erased artwork details: preserve these edits in the normalized print/mask, including during enhancement. The original upload is unedited.'] : []), ...(material === 'holographic' ? ['Holographic film: verify material and white-area treatment before printing. Foil appearance is proof-only.'] : []), ...resolutionWarnings, ...(Array.isArray(rawManifest.warningFlags)
       ? rawManifest.warningFlags.slice(0, 12).map((value) => String(value).slice(0, 180))
       : [])],
     processing,
