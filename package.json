@@ -1,0 +1,26 @@
+{
+  "name": "stickonfig",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Open-source sticker and decal configurator for independent print shops",
+  "license": "MIT",
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "dev": "npm run build && node scripts/serve.mjs",
+    "build": "node scripts/build.mjs",
+    "preview": "node scripts/serve.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test:browser": "node tests/browser.mjs",
+    "audit:licenses": "node scripts/licenses.mjs",
+    "audit:public": "node scripts/audit-public.mjs"
+  },
+  "dependencies": {
+    "@bunnio/rembg-web": "1.0.2",
+    "clipper2-ts": "2.0.1-18",
+    "fflate": "0.8.3",
+    "onnxruntime-web": "1.23.2",
+    "pdfjs-dist": "6.3.289"
+  },
+  "devDependencies": { "esbuild": "0.25.10", "playwright": "1.63.0" }
+}

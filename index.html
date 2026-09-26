@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Stickonfig — Sticker configurator</title><meta name="description" content="Open-source custom sticker and decal configurator for print shops."><link rel="icon" href="./mark.svg"><link rel="stylesheet" href="./src/ui/base.css"><link rel="stylesheet" href="./src/ui/builder.css"></head>
+<body data-page="sticker-builder"><header class="container masthead"><a href="./"><img id="shop-logo" src="./mark.svg" alt=""><span id="shop-name">Stickonfig</span></a><a href="https://github.com/azdrugdoc-prog/stickonfig">Code & documentation ↗</a></header>
+<main class="sticker-builder-page"><section class="container intro"><div><span class="eyebrow">OPEN-SOURCE / MADE FOR PRINT</span><h1>Your artwork.<br>Your next sticker.</h1><p>Upload, configure, preview, and export. Local artwork processing.<br>Production files in your hands.</p><p class="demo-notice">Example pricing. Download-only by default — no order is placed.</p></div><div class="selected-price"><span id="builder-price-label">Estimate</span><strong id="builder-selected-price"></strong></div></section>
+    <section class="container sticker-builder-shell" id="sticker-builder-app" inert aria-busy="true">
+      <div class="sticker-builder-workspace">
+        <section class="builder-card builder-upload-card" aria-labelledby="builder-upload-heading">
+          <div class="builder-card-heading">
+            <div><span class="builder-step">1</span><h2 id="builder-upload-heading">Upload artwork</h2></div>
+            <span class="builder-status-pill" id="builder-file-status">No file</span>
+          </div>
+          <label class="builder-drop-zone" id="builder-drop-zone">
+            <input id="builder-file" type="file" accept=".svg,.png,.jpg,.jpeg,.webp,.gif,.pdf,image/svg+xml,image/png,image/jpeg,image/webp,image/gif,application/pdf">
+            <strong>Drop artwork here or choose a file</strong>
+            <span>SVG, PNG, JPG, JPEG, WEBP, GIF, or PDF · up to 18 MB</span>
+          </label>
+          <p class="builder-inline-note">For animated GIFs and multi-page PDFs, the first frame or first page is used for the proof. The original file is retained with the production package.</p>
+          <div class="builder-art-preview" id="builder-art-preview" hidden>
+            <img id="builder-source-preview" alt="Uploaded sticker artwork preview">
+            <dl id="builder-file-details"></dl>
+          </div>
+        </section>
+
+        <section class="builder-card builder-proof-card" aria-labelledby="builder-proof-heading">
+          <div class="builder-card-heading">
+            <div><span class="builder-step">3</span><h2 id="builder-proof-heading">Live proof</h2></div>
+            <span class="builder-status-pill" id="builder-proof-status">Waiting for artwork</span>
+          </div>
+          <p class="builder-resolution-pill" id="builder-resolution" role="status" aria-live="polite" hidden></p>
+          <div class="builder-proof-stage" id="builder-proof-stage">
+            <canvas id="builder-proof-canvas" width="900" height="650" aria-label="Generated sticker proof"></canvas>
+            <div class="builder-proof-placeholder" id="builder-proof-placeholder"><b>Your proof will appear here</b><span>The magenta line represents the production CutContour path.</span></div>
+          </div>
+          <div class="builder-proof-key"><span><i class="builder-key-white" id="builder-material-key"></i><span id="builder-border-key-label">Printable area / white border</span></span><span><i class="builder-key-cut"></i>CutContour</span></div>
+          <p id="builder-material-note" class="builder-inline-note" hidden>Holographic simulation: white and near-white areas, including the border, show an approximate film effect. Actual reflections vary with lighting. Production artwork is unchanged.</p>
+          <div class="builder-preview-toolbar" id="builder-preview-toolbar" hidden aria-label="Artwork positioning shortcuts">
+            <button type="button" data-preview-zoom="-1" aria-label="Zoom artwork out">−</button>
+            <output id="builder-preview-zoom">100%</output>
+            <button type="button" data-preview-zoom="1" aria-label="Zoom artwork in">+</button>
+            <button type="button" id="builder-preview-center">Reset position</button>
+            <small>Drag artwork to move it inside the shape.</small>
+          </div>
+          <div class="builder-review-message" id="builder-review-message" hidden></div>
+        </section>
+      </div>
+
+      <form class="builder-card builder-controls" id="builder-controls" novalidate>
+        <div class="builder-card-heading">
+          <div><span class="builder-step">2</span><h2>Configure the proof</h2></div>
+          <button class="builder-link-button" id="builder-reset" type="button">Reset</button>
+        </div>
+
+        <fieldset>
+          <legend>Background handling</legend>
+          <div class="builder-option-grid builder-option-grid-two">
+            <label><input type="radio" name="backgroundMode" value="keep"><span><b>Keep original</b><small>Preserve your image or transparent artwork.</small></span></label>
+            <label><input type="radio" name="backgroundMode" value="remove" checked><span><b>Remove background</b><small>Recommended · Automatically isolate the subject for your sticker.</small></span></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Cut style</legend>
+          <div class="builder-option-grid builder-shape-grid">
+            <label><input type="radio" name="cutStyle" value="die-cut" checked><span><i class="builder-shape-icon shape-diecut" aria-hidden="true"><img src="./mark.svg" alt=""></i><b>Die-cut</b></span></label>
+            <label><input type="radio" name="cutStyle" value="circle"><span><i class="builder-shape-icon shape-circle" aria-hidden="true"><img src="./mark.svg" alt=""></i><b>Circle</b></span></label>
+            <label><input type="radio" name="cutStyle" value="rectangle"><span><i class="builder-shape-icon shape-rectangle" aria-hidden="true"><img src="./mark.svg" alt=""></i><b>Rectangle</b></span></label>
+            <label><input type="radio" name="cutStyle" value="square"><span><i class="builder-shape-icon shape-square" aria-hidden="true"><img src="./mark.svg" alt=""></i><b>Square</b></span></label>
+            <label><input type="radio" name="cutStyle" value="oval"><span><i class="builder-shape-icon shape-oval" aria-hidden="true"><img src="./mark.svg" alt=""></i><b>Oval</b></span></label>
+            <label><input type="radio" name="cutStyle" value="rounded-rectangle"><span><i class="builder-shape-icon shape-rounded" aria-hidden="true"><img src="./mark.svg" alt=""></i><b>Rounded rectangle</b></span></label>
+            <label><input type="radio" name="cutStyle" value="bumper"><span><i class="builder-shape-icon shape-bumper" aria-hidden="true"><img src="./mark.svg" alt=""></i><b>Bumper Sticker</b></span></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Material</legend>
+          <div class="builder-option-grid builder-material-grid">
+            <label><input type="radio" name="material" value="vinyl" checked><span><i class="builder-material-swatch material-vinyl" aria-hidden="true"></i><b>Vinyl</b></span></label>
+            <label><input type="radio" name="material" value="holographic"><span><i class="builder-material-swatch material-holographic" aria-hidden="true"></i><b>Holographic</b></span></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Perimeter</legend>
+          <div class="builder-option-grid builder-option-grid-four">
+            <label><input type="radio" name="perimeterMode" value="tight"><span><b>Tight</b><small>0.04 in</small></span></label>
+            <label><input type="radio" name="perimeterMode" value="standard" checked><span><b>Standard</b><small>0.10 in</small></span></label>
+            <label><input type="radio" name="perimeterMode" value="wide"><span><b>Wide</b><small>0.20 in</small></span></label>
+            <label><input type="radio" name="perimeterMode" value="custom"><span><b>Custom</b><small>Your offset</small></span></label>
+          </div>
+          <div class="builder-perimeter-row">
+          <div class="builder-custom-offset" id="builder-custom-offset" hidden><label for="builder-perimeter">Custom perimeter (in)</label><div class="builder-size-stepper"><button type="button" data-perimeter-step="-1" aria-label="Decrease perimeter by 0.01 inches">−</button><input id="builder-perimeter" type="number" min="-1" max="1" step="0.01" value="0.1" aria-describedby="builder-inset-note"><button type="button" data-perimeter-step="1" aria-label="Increase perimeter by 0.01 inches">+</button></div></div>
+          <label class="builder-grouping-control">Join nearby elements
+            <select id="builder-grouping">
+              <option value="tight">Tight</option>
+              <option value="auto" selected>Auto</option>
+              <option value="more">More</option>
+            </select>
+          </label>
+          </div>
+          <p class="builder-inline-note" id="builder-inset-note" hidden>Negative values move the cut inside the artwork. Fine details may be trimmed; review your proof.</p>
+        </fieldset>
+
+        <fieldset>
+          <legend>Border mode</legend>
+          <div class="builder-option-grid builder-option-grid-two">
+            <label><input type="radio" name="borderMode" value="white-border" checked><span><b id="builder-border-label">White border</b><small id="builder-border-description">Shows a clean white halo between artwork and cut.</small></span></label>
+            <label><input type="radio" name="borderMode" value="print-to-edge"><span><b>Print to edge</b><small>Extends available artwork toward the finished edge.</small></span></label>
+          </div>
+        </fieldset>
+
+        <section class="config-section builder-size-options">
+          <h2>Choose a size</h2>
+          <p class="option-help">Standard sizes are listed in inches. Choose Custom Size to enter finished width and height.</p>
+          <div class="tile-grid size-tile-grid" id="builder-size-tiles"></div>
+          <button type="button" class="config-tile custom-tile" id="builder-custom-size" aria-pressed="false"><b>Custom Size</b></button>
+        </section>
+        <div id="builder-custom-dimensions" hidden>
+        <div class="builder-dimensions">
+          <div class="builder-dimension"><label for="builder-width">Width (in)</label><div class="builder-size-stepper"><button type="button" data-dimension="width" data-size-step="-1" aria-label="Decrease width by 0.25 inches">−</button><input id="builder-width" type="number" min="0.25" max="60" step="any" value="3" required><button type="button" data-dimension="width" data-size-step="1" aria-label="Increase width by 0.25 inches">+</button></div></div>
+          <div class="builder-dimension"><label for="builder-height">Height (in)</label><div class="builder-size-stepper"><button type="button" data-dimension="height" data-size-step="-1" aria-label="Decrease height by 0.25 inches">−</button><input id="builder-height" type="number" min="0.25" max="60" step="any" value="3" required><button type="button" data-dimension="height" data-size-step="1" aria-label="Increase height by 0.25 inches">+</button></div></div>
+        </div>
+        <label class="builder-ratio-toggle"><input id="builder-lock-ratio" type="checkbox" role="switch" checked><span class="builder-switch-track" aria-hidden="true"></span><span>Maintain artwork aspect ratio</span></label>
+        <p class="builder-inline-note" id="builder-circle-note" hidden>Circle sizes keep width and height equal. Choose Oval for independent dimensions.</p>
+        </div>
+
+        <fieldset><legend>Quantity</legend><input id="builder-quantity" type="hidden" value="50">
+          <div class="tile-grid builder-quantity-tiles">
+            <button type="button" class="config-tile" data-builder-quantity="20" aria-pressed="false"><b>20</b></button>
+            <button type="button" class="config-tile is-selected" data-builder-quantity="50" aria-pressed="true"><b>50</b></button>
+            <button type="button" class="config-tile" data-builder-quantity="100" aria-pressed="false"><b>100</b></button>
+            <button type="button" class="config-tile" data-builder-quantity="200" aria-pressed="false"><b>200</b></button>
+            <button type="button" class="config-tile" data-builder-quantity="500" aria-pressed="false"><b>500</b></button>
+          </div>
+        </fieldset>
+        <label class="proof-toggle sticker-laminate-option"><input id="builder-laminate" type="checkbox"><span><b>Add matte lamination</b></span></label>
+        <div>
+          <label class="proof-toggle"><input id="builder-enhance" type="checkbox" aria-describedby="builder-enhance-help"><span><b>Request manual artwork enhancement</b></span></label>
+          <p class="builder-inline-note" id="builder-enhance-help">Optional manual service offered by your print shop. No automatic enhancement is performed.</p>
+        </div>
+
+        <aside class="subtotal-box">
+          <h2>Estimate</h2><dl id="builder-summary"></dl>
+          <strong id="builder-estimate"></strong>
+          <p class="builder-inline-note" id="builder-unit-price">Example prices only · configure before accepting orders</p>
+        </aside>
+
+        <input id="builder-guidelines-ack" type="checkbox" hidden disabled>
+
+        <div class="builder-validation" id="builder-validation" role="status" aria-live="polite"></div>
+        <button class="button button-primary builder-add-button" id="builder-add" type="submit" disabled>Generate production files</button>
+      </form>
+    </section>
+  </main>
+
+
+<section class="container" id="downloads" hidden><h2>Your production package</h2><p>Download the ZIP or individual files. No files have been sent to a print shop.</p><div id="download-links"></div></section>
+<footer class="container">Stickonfig is independent community software, supplied as-is. Test output with your RIP before printing.</footer>
+<dialog class="builder-resolution-dialog" id="builder-resolution-dialog" aria-labelledby="builder-resolution-title" aria-describedby="builder-resolution-detail"><h2 id="builder-resolution-title">Check your image resolution</h2><p id="builder-resolution-detail"></p><form method="dialog" class="builder-resolution-actions"><button class="button button-primary" value="enhance">Request manual enhancement</button><button class="button" value="continue">Continue as-is</button><button class="button" value="cancel" autofocus>Cancel</button></form></dialog>
+<script type="module" src="./src/ui/bootstrap.mjs"></script></body></html>

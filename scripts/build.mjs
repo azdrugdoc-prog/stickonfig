@@ -1,0 +1,21 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {createHash} from 'node:crypto';
+import {build} from 'esbuild';
+const root=path.resolve(import.meta.dirname,'..'),dist=path.join(root,'dist');
+// Fixed generated-output directory only; never accepts a user-provided delete path.
+if(path.dirname(dist)!==root||path.basename(dist)!=='dist')throw Error('Unsafe output directory');
+fs.rmSync(dist,{recursive:true,force:true});fs.mkdirSync(dist,{recursive:true});
+const copy=(source,target)=>{fs.mkdirSync(path.dirname(path.join(dist,target)),{recursive:true});fs.cpSync(path.join(root,source),path.join(dist,target),{recursive:true})};
+for(const p of ['index.html','stickonfig.config.mjs','src'])copy(p,p);
+copy('public','.');
+const model=fs.readFileSync(path.join(root,'public/assets/models/u2netp.onnx'));
+if(createHash('sha256').update(model).digest('hex')!=='309c8469258dda742793dce0ebea8e6dd393174f89934733ecc8b14c76f4ddd8')throw Error('Segmentation model checksum mismatch');
+for(const file of ['pdf.min.mjs','pdf.worker.min.mjs'])copy('node_modules/pdfjs-dist/build/'+file,'assets/vendor/pdfjs/'+file);
+for(const file of ['ort-wasm-simd-threaded.wasm','ort-wasm-simd-threaded.mjs'])copy('node_modules/onnxruntime-web/dist/'+file,'assets/vendor/onnx/'+file);
+const runtime=await build({entryPoints:[path.join(root,'src/core/segmentation/runtime.mjs')],outfile:path.join(dist,'assets/vendor/sticker-processing.mjs'),bundle:true,minify:true,format:'esm',platform:'browser',target:'es2022',alias:{'onnxruntime-web':'onnxruntime-web/wasm'},legalComments:'eof',metafile:true});
+if(Object.keys(runtime.metafile.inputs).some(p=>p.includes('guid-typescript')))throw Error('Review guid-typescript license before bundling this optional runtime dependency');
+await build({stdin:{contents:"export { zipSync } from 'fflate';",resolveDir:root},outfile:path.join(dist,'assets/vendor/zip.mjs'),bundle:true,minify:true,format:'esm',platform:'browser',legalComments:'eof'});
+if(fs.existsSync(path.join(root,'licenses')))copy('licenses','licenses');
+for(const p of ['LICENSE','THIRD_PARTY_NOTICES.md'])if(fs.existsSync(path.join(root,p)))copy(p,p);
+console.log('Built static application in dist/ (no server or credentials required).');

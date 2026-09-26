@@ -1,0 +1,11 @@
+{
+  "$schema": "https://raw.githubusercontent.com/cloudflare/workers-sdk/main/packages/wrangler/config-schema.json",
+  "name": "stickonfig-intake-example",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-09-25",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "vars": { "ALLOWED_ORIGIN": "https://stickers.example.com" }
+  // Before deployment add an R2 binding named FILES and service binding AUTH.
+  // No account IDs, bucket names or store credentials are supplied.
+}
