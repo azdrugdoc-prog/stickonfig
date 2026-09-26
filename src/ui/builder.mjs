@@ -965,9 +965,9 @@ import { clearDownloads } from '../adapters/storage/download.mjs';
     canvas.width = Math.max(1, Math.ceil(viewport.width));
     canvas.height = Math.max(1, Math.ceil(viewport.height));
     const context = canvas.getContext("2d", { alpha: true, willReadFrequently: true });
-    context.fillStyle = "#fff";
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    await page.render({ canvasContext: context, viewport }).promise;
+    // Preserve unpainted PDF page alpha instead of PDF.js's default white backing.
+    // Explicit white artwork still renders white; production backing is separate.
+    await page.render({ canvasContext: context, viewport, background: "rgba(0,0,0,0)" }).promise;
     page.cleanup();
     return { source: canvas, pageCount: pdfDocument.numPages, previewUrl: canvas.toDataURL("image/png") };
   }

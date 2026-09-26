@@ -13,6 +13,10 @@ The extraction was tested separately from its originating storefront; no product
 - Production dependency/license inventory, model checksum, source sanitization scan and manual allowlist review. Gitleaks 8.30.1 found no leaks in the staged publication files. npm audit reported zero known vulnerabilities at the time of release.
 - README screenshot uses only the generated neutral sample, not customer artwork.
 
+## PDF import regression update
+
+Generated two-page PDF coverage verifies unpainted-page transparency, deep concavities, intentional white details, and explicitly painted opaque white backgrounds. Import transparency is separate from the white-backed production PDF export.
+
 ## Not certified or supplied
 
 - Individual printer/cutter/RIP compatibility, color profiles, white-ink separations, production throughput or commercial quality guarantees.
